@@ -1,0 +1,42 @@
+h2 {
+  text-align: center;
+  font-family: serif;
+}
+
+button {
+  font-size: 15px
+}
+
+.background {
+  background-color: beige;
+  padding-top: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-bottom: 10px
+}
+
+.timer_sec {
+  margin-left: 50px
+}
+
+.timer {
+  padding-top: 5px;
+}
+
+.timer_content {
+  border: 2px solid grey;
+  border-collapse: collapse;
+}
+
+th {
+border: 2px solid grey;
+height:25px;
+width:50px;
+text-align: center;
+}
+
+tr {
+  height:25px;
+  width:50px;
+  text-align: center;
+}

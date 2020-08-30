@@ -1,0 +1,527 @@
+Overall goal - event countdown timer
+
+- enter a date
+- a timer is then generated displaying how long in years months days hours minutes seconds till then
+- the timer ticks down in real time
+- if the timer reaches 0 it should be replaced with "done"
+- if the entered date is in the past timer should be replaced with "passed"
+
+updates when base done
+- can have multiple timers at once
+- can store timers in a file which reads them in when the app is started
+- can enter an event and the app will try to find the date of it
+
+- got basic html set up
+- next need a server to actually send it
+
+-server is set up sends all data as requested from files with correct MIME types
+
+- now need to add functionality in scripts.js and the html
+- mostly client side, update the base HTML client side and any data storage added later can be handled server side
+
+-NB: for client side I want it to continue updating the HTML every second if there is a timer, to do this
+      I could maybe use the onchange event handler for the whole of the timers section
+      If I'm right this would mean that any time a timer was added or decremented the function would be called
+      I could have it wait a second then carry out all the decrements
+
+      Remember it's just one timer to start, though for multiple I might need to change the timer template so each one has an
+      onchange handler to prevent each timer from causing the others to change
+
+Got the timer addition sorted - currently limited to 1 - now to have it tick down
+need to add the onchange to the timers section as part of the addTimer method and remove it as part of the removeTimer method - just for safety-
+
+need a method to add the onchange and a method to add as the onchange
+
+So the onChange doesn't work but can use setInterval to run the code every second, issue with this is that when multiple timers are
+in use each will need it's own timer variable, I will probably need a global array of timer objects containing relevant data like that
+which is updated when addTimer is used, they will also all need an ID number that can be added to the id when generating and reading the HTML since
+I need to be able to get each timer's independent values for each of their sections can use constructor Strings to add the id when creating and reading
+
+also needed to call clear interval when the timer is removed or reaches 0 to prevent issues of multiple calls on an empty timer or calls to a non existent one
+
+now need to set the timer to be replaced with DONE when it ends
+
+can use child.replace() - this is good as it means when I am using multiple timers I can pass in the id to specify which child is to be resolved
+
+used the onClick event to have the input's dd/mm/yyyy to disapear when the user goes to enter a value
+used the onBlur event to check that the input value is not negative when the user clicks off re-adding the dd/mm/yyyy if it is
+
+added a check for the timeTo in addTimer() to check for dates in the past
+
+basic plan for multiple timers
+
+need a global array of timer objects, contains
+
+id: numeric value
+date: date Object i.e. the countdownTo variable
+timer: a variable that can be used to start and end the timer's countdown to
+
+onClick of add a wrapper method around addTimer will be called that can generate a new object and use these values to correctly add the additional timer
+
+need to alter several current methods to take in the id as a parameter so they are applied in the right way
+
+created array
+
+first Step, alter addTimer to generate the object properly, NB: timer should be generated last and added to the array in it's creation method using the id
+
+For addTimer:
+
+    - need to generate an ID, need to keep track of how many timers there are, give the timer section an attribute for count
+    - when a new timer is generated set the id to the count value then increment the count
+    - the HTML needs to have it's ID added
+    - then add the id and the html to the object
+    - add an un-initialised variable as the timer, it will be initialised in startCountdown()
+    - had to alter updateAddSystem() to use a check for the count against the global maxTimers variable
+
+For startCountdown:
+    - need to take in a timer object and use the object's timer value
+    - it calls remove1Second, this needs to be altered to affect a specific timer
+
+For remove1Second:
+    - needs to take in an ID
+    - this id is used to find the right timer to update
+    - the getElementById uses `d_xxx_${id}` to find the right timer's values
+    - ACTUALLY needs to take the whole timer since the remove1Second method needs the timer too cancel it if it reaches 0
+    - will need to update finish timer method to finish the right timer
+
+
+EVERYTHING broke, lots of changes happened but now multiple timers can exist at once and tick down simultaneously
+
+NEED TO FIX STUFF
+    - should have a single countdown, timer object needs edited, remove the timer aspect
+    - Note when adding a new timer for the id we should change it from using the count to using a value for the next ID which is increased whenever a timer is made
+            since otherwise removing 2 would lead to two id = 4 timers
+    - Might want the timer(s) to be added at the end of the remove1Second method and have addTimer add them to an array
+    - alter the remove1Second() function so it iterates though the array of timers and for each remove the seconds
+
+DONE - timers all tick down at once now
+
+NB - Might want to just store the date as the desiredDate and when adding the timers find the time by subtracting the current date and add it just before appending it
+        - this would require altering the html generation to remove the value additions and put them in a separate method
+          and altering the timer object so that it stores the HTML, ID, and the date object to count down to which can be used to find the time needed
+
+        - at the start of the insertTimers method generate a new Date and find the time to the desired date, updating the HTML as they are found
+
+DONE - all timers now tick down using the same amount of hours days seconds etc. and just different dates
+
+NB - some dates have an extra hour than others, not too sure how to fix this, might be rounding but I have my doubts
+
+TO DO
+    - add remove to set to DONE, the HTML for which also needs a remove button added to it
+
+NB - when a timer runs out I need to remove it from the timers array, before removeTimer is called otherwise the remove1Second
+      method will get confused
+
+        - set it to DONE  - HTML needs some work cause it looks ugly
+        - remove it from array
+        - when remove is clicked decrease count and remove the HTML - note: count is the number of current timers
+
+NB - Removing DONE timers works fine, just need to clean up the HTML cause it's still ugly
+
+TODO -
+      fix the clearing and resetting of the input box so that when you click it empties and when you un-focus it checks
+        also set it up to reset to dd/mm/yyyy when a timer is created or fails to be created
+
+      look into the bug where sometimes an extra hour is added (or maybe there's one less than there should be???)
+
+      that should be the end of phase two, then move on to phase three where timers can be saved
+
+issue with the clear and reset of input is likely too specific a check
+That isn't actually it the issue is that value doesn't change the text in the input
+
+might just redo the validation, need:
+          - shows dd/mm/yyyy when an input is missing - use a placeholder instead of an actual value
+          - on change check the format against the regex to ensure it's valid, removing the text if it isn't
+          - when add is clicked take the data from input and reset the text box, does not matter if the date is valid or not resets anyway
+          - can remove the onblur and the checkForEmptyInput function
+          - remove the initial value since using a placeholder
+          - can also remove the call of clearInput when the input box is clicked
+          - find and remove all of the setAtrribute("value", ...), can be re-added where needed for new plan
+
+          - do removals first then additions
+
+          - Issue: setting the text value to nothing doesn't seem to work with setAttribute("value", "") try .value ??
+              - .value = "" works
+
+Input validation and clearing much smoother than it was, move on to timer bug inspection
+
+issue is that some online timers match for some months but not for others example:
+
+two timers, 1 - my birthday, 2 - ira's
+
+my timers:
+1 - 191 days 4 hours ...
+2 - 22 days 3 hours ...
+
+https://howlongagogo.com/:
+1 - 191 days 3 hours ...
+2 - 22 days 3 hours ...
+
+december does not match but why????
+
+removing the rounding has the number of hours calculated to 3.999999999999999999...
+thus the rounding is likely the reason it is calculated as 4 instead since values used will end up as round values
+some values will have been rounded up meaning the result ends up as 4
+
+Fix in progress
+
+suggested fix - do every calculation in seconds
+    - have a var that holds the number of seconds and alter it after every calc
+    - i.e. take the number of seconds - convert into years
+    - take the decimal of the years value and convert into seconds, this is the new remainingSeconds
+    - then calculate how many days from that and take the decimal to make the new remainingSeconds
+    - keep working till seconds which just becomes remainingSeconds
+
+
+old way
+
+valueBundle = timeConversion(seconds, minutes, 60)
+seconds = valueBundle.s
+minutes = valueBundle.l
+
+
+valueBundle = timeConversion(minutes, hours, 60)
+minutes = valueBundle.s
+hours = valueBundle.l
+
+
+valueBundle = timeConversion(hours, days, 24)
+hours = valueBundle.s
+days = valueBundle.l
+
+
+valueBundle = timeConversion(days, years, 364)
+days = valueBundle.s
+years = valueBundle.l
+
+new way doesn't fix the rounding issue with the hours either, I give up
+
+https://www.timeanddate.com/ gives the same results as my timers, so maybe it isn't even an issue,
+if it is likely an issue with the days not the hours, the remainder that makes the sum is likely causing an issue
+
+Phase 3
+: want to add save buttons, when you click it will use webSockets to communicate with the server,
+    the communication should go in two stages, 1 - check for space, 2 - send data to be saved
+
+    1 - can only save an amount equal to the timer max value have the server keep track of how many currently saved timers there are and send it to the client
+        can have it check on startup by reading the file the data is written to, and keep track of updates that occur during runtime
+        when a timer is saved or unsaved the communication with the server will allow the server side count to be altered
+
+    2 - the data is sent to the server which will write the data to a file,
+        data should be sent as a JSON object containing a type (info | data) and another object containing the data, (if data type)
+        the server checks the type, sending info to the client if it gets an info type or saving the data if it was a data type
+
+
+        HOLD UP : found on accident that you can add a timer without entering a date
+                  - issue was a hold over from the old method of handling the input format prompt, check was assuming the prompt was actual text not a placeholder now fixed
+
+Starting now
+
+- used npm install to add the ws module to the file and gave the server side a require statement to import it
+- then added a script tag to the base.html head tag which generates a new webSocket using the hostname and port of the current URL the html is served to
+- altered the server to use hostname instead of loopback address - prints to console
+- set up server to console.log that it has connected upon connection
+- console.log show's nothing, not sure why take a look at the old web sockets code from cs2003
+
+- set up an onmessage event handler that will parse the message from the client out of JSON and console.logs it
+- have the client send a message as part of it's setup
+- can't send as it is still in the setup phase
+- altered it to send a message when adding a timer, the server received it
+
+- now need to set up the timer html to include a save button
+- wait, don't want to have to send an information request since it is hard to block using webSockets
+- final plan is to have the saved data sent when the page loads can find the initial number of saved timers when that happens
+    if this is updated whenever saving and un-saving occurs then there is no need for information requests
+
+- so first step is to set up the onLoad event handler that will request the saved timers info
+- use the onload event with the body, when it loads call a function that requests the saved data from the server and adds any timers
+
+I AM HERE
+
+- ISSUE: the websocket is not connecting fast enough, this means the initial call tends to fail since it can't send a request over an un opened socket
+          to fix I'll need to create an async function that only returns when the connection is OPEN, and then use await to block the process until it happens
+          NOTE: currently using setTimeout to wait for a second before continuing, this works but is not guaranteed so I'll need to do the above process
+
+- Plan is to have an asynchronous function that sends the request once the webSocket is OPEN
+- also alter the add System so that to begin it displays a waiting for save data <p> section which is replaced with the button and input box after the save data is loaded
+- the save data is loaded as part of the client's onmessage function, this will also be where the add system change is made
+- this will happen after the asynchronous function is complete
+
+- order of operations is :
+      1) the page body loads
+      2) this causes the asynchronous function to begin   * doesn't need to be asynch actually since the app can't do anything while it's waiting for the save data might as well bock
+      3) the page displays the waiting section
+      4) the function completes and sends the request for save data
+      5) the server receives the request and reads the data from the file
+      6) the server generates the response object and sends it to the client
+      7) the client's onmessage handler checks the type and if it's save data ...
+      8) it generates the required timers and calls addTimer for each one
+      9) then it updates the add section to allow additional timers
+      10) after the update call updateAddSystem to make sure the add system is set to the correct state
+
+If all else fails can probably use the onopen event for the websocket to send the request
+
+don't be dumb just use onopen like a sane person, also addTimer calls updateAddSystem so no need to call it at the end
+
+new Order of operations
+      1)  load html
+      2) onopen sends the save data request
+      3) when the server gets it generates the response object
+      4) sends the resp obj
+      5) the client then takes the resp obj and getting the required data calls addTimer for each of them
+      6) updates the add system to allow addition
+
+NOTE: stuff I thought of
+      (i) when a timer is saved it has to be unsaved before removal is allowed
+      (ii) if a saved timer is loaded and found to be in the past then send an alert - also likely good idea to auto remove from the save data
+
+onopen send complete
+need the save data file - can fill with temp data once I know what I need
+data needed - the countdownTo Date (or the day month and year) addTimer handles the rest
+can alter addTimer to take in a date, if the object is null then take from input otherwise use the object
+get the date from the save data  request
+
+added a date parameter to addTimer which will allow a manual date entry, this should allow the use of addTimer for loading the save data
+
+now need the server to read the response object, temp data can just be the month the day and year in csv format
+
+done, upon loading the client requests the data from the server then receives it, the data consists of an object of type data and an array of dates
+the dates will be passed into the add timer method
+
+now set up onmessage to handle data type objects, it should take those and call a method with them as a parameter
+
+so it reads in and adds the timer, however the format is completely fucked
+looking at how I handled dates for phase 1 it seems like I forgot to cast to int also remove 1 from month
+
+changing that did fuck all
+
+could maybe be a temp data issue, could save the usefull date and use that maybe??? try changing temp data to the usefull date for 17/03/2020 - see addTimer method for usefull date
+
+console.log usefull date and see the format it is
+format for the server generated Date is: 2020-07-12T23:00:00.000Z
+format for client generated date is: Mon Jul 13 2020 00:00:00 GMT+0100 (British Summer Time)
+
+why????
+
+unsure, if all else fails I could have the save data be what would be input for the timer and alter findCountdownTo to take in a string of that format
+then have the addTimer check for a passed in String, taking it from the input if it's null or using the parameter if it's non null
+
+literally have 0 clue what it's doing, change save_data format to dd/mm/yyyy and send an array of Strings to be passed in to addTimer
+
+so assuming correct date format the server will send the array of dates across and the client will correctly add a timer for them
+
+now need to set up adding save data and the restrictions on that
+
+- should maybe give the client a variable for the number of saved timers so it can check when it can save and when it can't
+- need to alter the base html so that the input section starts as a waiting section until all the timers are added then allows adding timers
+- could have the information request send the maximum number of timers so that the server only ever sends that many, not a fix for the issue of having too many in the file
+    just an extra precaution
+- too prevent too much save data need to ensure data only sent to server when there is space and that un-saving a timer correctly removes it from the file
+- also need to have saved timers need to be unsaved before removal, their HTML has to be different how to do this???
+
+start with HTML alteration
+need to alter updateAddSystem to skip over it if it is not yet ready, can use a global boolean value for saveDataLoaded
+instead of changing updateAddSystem just set a check in addTimer
+
+so the html updating is fine
+
+next step the count of timers, this is updated whenever a timer is added through addSaveData so the client knows how much save data it received
+this is important since the client needs to know how much space the save file has - can only accept up to the max number of timers - when deciding if a save request can be allowed
+could probably skip since you can't remove a timer without un-saving it and you can only have timers up to the max, so timers can't be added if there isn't room to save them
+
+saving a timer:
+       - first step is to get the date, easy enough, added the usefull date to the date object so it can be used for generating the save data
+       - when save is clicked take the id and use it to get the right timer
+       - when you have the right timer take it's date and create an object to send over the websocket
+       - when the server receives the object of that type it takes the date and needs to update the file
+
+       - issue: with the added timers I need some way to check if a timer is part of the save data, when you click save that'd be easy to update
+                however with the read in save data, that would need to be updated, could: (list of options)
+                        use a separate method to add them so that the HTML can be different
+                        alter the addTimer to take in a second parameter which will let it know what id to use
+                        create a new method that goes through all the timers and alters their ID, would need some way to make sure that none of the timers are still waiting - while loop?
+
+                        maybe instead of the while loop I can use the count to check if it has found all the timers in the timers array, and if I haven't check the waiting array
+
+                        yeh sounds good, iterate over the timers array and for each take the html and edit it, keep track of how many times you do this, check against count then
+                         if it is not equal  go through the waiting array
+
+        when you have the html get the id use setAtrribute to take the html and update the sections id to saved_timer_{id}
+
+        update the number checked then compare it to the count, if the count isn't equal check the other array,
+
+        actually, maybe use do while processed != count and check both, i'll need a to check the id doesn't start with saved_
+
+        NO WAIT: instead of using do while use a while loop and take the last element from both arrays update the count if an element is there
+        this reduces the chance of error and prevents you from having to go over all the arrays multiple times
+
+        idiot if you use pop then they can't be added to the page duh
+
+        could add them to a separate array and add them back afterwards
+
+  This works, the HTML of saved timers now accurately represents the fact they were saved, might have been smarter to just give them their own creation method
+  potential optimisation
+
+  now to create the methods for saving and unsaving timers ----------------------------------------------------------------------------------------------
+
+    saveTimer and unsaveTimer should send a message object to the server containing the date to be saved or removed
+    then alter the HTML to represent that it has happened
+    One question is whether I should find a way to wait for a response from the server before updating
+    could have the html remain as it is until the server recieves a response,
+      the sent object would need a way to identify the timer so that when the server sends it's confirmation the client knows what timer to update
+
+    Protocol for saving:
+    send object to server {"type": "saveData", "data":{"date":date, "id":timer_id}}
+    send response to client  {"type":"saveDataConfirm", "data":{"id":timer_id}}
+
+    the server looks for incoming messages of type saveData and alters the savedata file before sending the response
+    the client looks for the incoming messages of type saveDataConfirm and then alters the html of the timer of id found in the response
+
+    if the server fails to alter the HTML send an object with type saveDataError to signify that an issue occurs so the client can inform the user
+
+    to prevent spamming the server set the save and remove buttons to placeholders that are changed if an response is received,
+        can add a setTimeout function to alter the html after a few seconds in case the server never sends a response
+
+    Do something similar with removeTimer, change the types obviously
+
+
+    update generateTimerHTML to take in the date in two formats, so that the display date and functional date can be used
+      - to do this need a new method to take the display date and get the saveDate by converting it into the correct format
+        - e.g. Tue 29/Dec/2020 ->   29/12/2020
+
+    can now add the saveDate to the generateTimerHTML method and the timer objects
+    this means the saveDate can be passed directly to the methods that send requests to save and unsave dates to the server
+
+    the server recieves the message
+
+    can use a writeStream to append to the file, but should give the message a maxTimers value
+      so the server can check that the amount of save data is not in excess of the max timer count - send error if it is
+      can send the value as part of the original save data request, and then store it
+
+      if the save data is larger than the max number of timers could have part of the response be the amount of excess save data - could send that anyway actually
+
+      this would be awkward since saving unsaving then saving again with excess data would likely mean the timer would disappear on the next load up
+      could have removed save data replaced with a \n and add new saves at the first \n in the page (or ' ' in the array)
+       but this would require the \n to be removed when the client closes and would need to account for this not happening in case the server closes first
+
+       could use the ws.onclose handler
+
+    FOR NOW: purge the excess data for now, can go back and optimise later
+
+    to purge the data pop off the excess dates from the array to be sent to the client and then use a writer to replace the saveFile data with that shorter list
+
+    that now works, next step is to update the save file when the client sends save data
+
+To have the saved timer call unsave will need to give the response Obj the saveDate as well so that it can be set as the relevant timer's date to unsave,
+or maybe find the timerfrom timers
+
+
+Everything is fucked, saving and unsaving work but the issue is the html update - check over the confirmation handlers that'll be where the issue is
+
+fixed issue with date being treated as a sum (id: 0.0009....)
+
+might not be setting the id for the timers from saved to normal when processing confirmation
+issue is that the first save value has a /r added to the end for some reason
+
+look at the method that creates the array
+    can go through each element in the array, check if the date ends with \r and if so can use slice to remove the last bit
+    or could use a length check, all dates use the same format, have the same length (dd/mm/yyyy = 10 chars)
+
+Fixed that issue, save data system now works as intended
+
+TO ADD - try set up alerts to only last a second since they pause timers while they are up leads to inaccuracy - not possible without external libraries
+
+Issue - sometimes the connection is established before the JS file has loaded meaning the value for max timers cannot be sent
+          this was happening because the web socket script was in a script tag the head tag while the JS link was in a script tag in the body tag
+          moving the web socket script tag to after the JS file's script tag solved the issue since now the JS will always load before the connection is established
+
+PHASE 4 - include a list input that contains well known days, these can be selected to add the date of that day to the date input box
+
+  should minimise client side processing can generate the array and the html for the input server side
+  should generate the input's html outside of the baseHTML file since it'd be easier to alter the list then
+  could read the days and their dates from a text file
+  (would also need an id since i'll need a day array and a dates array and they'll need the same indexing to work together)
+  maybe instead of an id could just add them to each array at the same time - sort alphabetically first
+
+  if i generate the HTML separately can I add it in since i'm pretty sure I serve it as text
+    - can use the String.prototype.replace method
+    - takes in a regex to look for and the value to replace it with
+    - can store the html as a var and use it for the replacement value
+
+  The html itself needs
+  <input> to wrap it
+  the <input> needs to have the list attribute the value of which should be the id of a <datalist> tag
+  <datalist> tags need to wrap <option> tags which have attributes of value followed by the text value to select
+  should give the list an event handler for onchange to add the date to the box
+
+  the arrays containing the dates and the days will be created by the server and sent
+    for the dates - the year should be left as "year"
+        - when the date is taken from the array the current date and year are found
+        - if the current date is greater than the date of the day this year the date's year is set to be next year, otherwise the current year is used
+  the arrays should be sent over the ws when the connection opens - the client will have global vars to hold them
+
+  First step get the .txt file created and read from it as part of set up
+
+  steps taken :
+
+    converted the html from a buffer to String before sending - this works, so can insert the list html at this stage
+    at this stage call a function that takes in the html and returns the updated html with the list added
+
+      for this I should have the base.html have a section (that is commented out??) that I can replace with the html text for the list
+      fuck didn't account for the fact that the input section is generated client side since the base is waiting for the save data
+
+      could send the HTML across with the arrays in the message to the client then have the function that allows addition add it in???
+
+      So when the connection is established send a message across to the client with the data that will then be stored by the client for use
+
+      okay generating the arrays is the first step
+
+      could have an array of dates - instead of an array of days could maybe give each option a label that contains it's id
+
+      use value to hold the id and label to hold the actual day's name
+
+      use a function to generate the array when the server starts
+
+      wait wait wait wait
+
+      when i have the input section appear after the server sends the data I don't need to change the HTML I can use display and change it from none to inline
+
+      find the method allowAddition in scripts.js and make a copy that will do this - then add the HTML back to the input section
+          need to  seperate into two sections and have the first hold the wait message and the second hold the input
+
+          fixed - now can add the drop down box to the inputSec of the base HTML
+
+  will be generating the array and the dropdown at the same time - should do it before the server is started to ensure it's ready in time for a request
+
+  I will want to move the functions used in main to a separate file to make main easier to understand
+    - this will require most of the filepaths and require statements be moved to this separate file
+    - need to give the other file an export value ( module.exports = {...} )
+    - will also want to create methods for the different messages the webSocket has to handle
+
+DONE now to organise that file before moving on to the process of generating the dropdown array and html
+
+the input box is sent over - need to give it event handlers but first main issue is that label and value don't work like I thought
+    also may need to clear the input after it transfers the date across
+
+THE FUCK AM I DOING - why bother with the array - just use the date without the year as the label - assuming I can take the value from the option
+could have the value be the date and then onchange it takes the value from the dropdown input and moves it to the date input
+
+use document.getElementById to grab the dropdown which let's me grab the value in it - should be the date minus the year
+can then check with the current year/date to see if the date is the past, if it isn't then use the date with the current year otherwise use the next year
+add this value to the input box for adding
+then reset the dropdown to be empty
+
+Issue: this works for one addition but then stops adding to the dropdown
+        So the value is changing but the display doesn't
+        if I remove the line to set the dropdown value to "" it changes but then doesn't alter the input box,
+
+        Fixed issues
+
+NOTE: need to unsave timers that reach 0
+
+so i need to account in setToFin for the timer to be saved
+now that that is done need to account for finished timers in the process unsaveConfirm function and setTimerToWaiting
+
+this is done, finished timers are now unsaved
+
+phase 4 complete
